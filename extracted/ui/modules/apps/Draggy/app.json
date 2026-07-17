@@ -1,0 +1,20 @@
+{
+  "domElement": "<draggy></draggy>",
+  "name": "Draggy",
+  "directive": "draggy",
+  "description": "Draggy-style drag performance meter: 0-60/60-130 mph or 0-100/100-200 km/h, 1/8-1/4-1/2 mile splits, trap speed, metric/imperial switch",
+  "author": "Draco",
+  "version": "1.1",
+  "types": [
+    "ui.apps.categories.timing"
+  ],
+  "category": "Dashboard",
+  "isAuxiliary": false,
+  "interactive": "yes",
+  "css": {
+    "top": "10px",
+    "left": "10px",
+    "width": "280px",
+    "height": "330px"
+  }
+}

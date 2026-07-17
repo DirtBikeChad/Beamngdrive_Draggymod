@@ -1,0 +1,48 @@
+{
+    "attachments": [
+        {
+            "data_filename": "1310747.png",
+            "original_filename": "screenshot-2026-06-25_04-30-41.png",
+            "thumb_filename": "thumbs\/1310747.jpg"
+        },
+        {
+            "data_filename": "1310748.png",
+            "original_filename": "screenshot-2026-06-25_04-37-17.png",
+            "thumb_filename": "thumbs\/1310748.jpg"
+        }
+    ],
+    "resource_id": 38405,
+    "current_version_id": 69866,
+    "download_count": 0,
+    "resource_version_id": 70052,
+    "version_string": "2.1",
+    "last_update": 1782465899,
+    "rating_avg": 4.25,
+    "rating_count": 0,
+    "rating_sum": 0,
+    "resource_category_id": 10,
+    "resource_date": 1782387121,
+    "review_count": 4,
+    "tag_line": "A GPS-style drag-strip performance meter, right in your HUD.",
+    "update_count": 1,
+    "path": "MDHQ2NYKZ\/69866\/",
+    "filename": "Draggy.zip",
+    "title": "Draggy",
+    "user_id": 805789,
+    "username": "Draco902",
+    "tagid": "MDHQ2NYKZ",
+    "message": "DRAGGY is a lightweight BeamNG UI app that turns your dashboard into a GPS performance box. It auto-arms when you stage, fires on launch after a true 1-foot rollout, and clocks every benchmark that matters \u2014 then remembers your best quarter-mile of the session.\n\nNo setup, no calibration. Drop it in, drag it onto the HUD, and send it.\n\nFeatures\nFeature    Detail\n    Auto-launch detection    Arms when stopped on throttle, fires the clock automatically\n    True 1-ft rollout    Timing starts after the first foot \u2014 exactly like a real Draggy\n\u23f1\ufe0f    0\u201360 & 60\u2013130 mph    Acceleration benchmarks to 2-decimal precision\n\ufe0f    \u215b & \u00bc mile + trap    Distance splits with trap speed at the line\n    Best-run memory    Tracks your quickest quarter of the session\n\ufe0f    True airspeed    Uses real velocity, not wheelspeed (immune to wheelspin\/lockup)\n\u23f3    Sim-time clock    Times track simulation time, so slow-mo, fast-mo & pause never skew results\n    Live status    READY \u2192 STAGED \u2192 RUN \u2192 DONE with a pulsing launch indicator",
+    "category_title": "",
+    "prefix_title": "",
+    "via": "packed by repo on Mon, 06 Jul 2026 02:15:16 GMT",
+    "hashes": [
+        [
+            "ui\/modules\/apps\/Draggy\/app.js",
+            "07fdccc9e4a63616"
+        ],
+        [
+            "ui\/modules\/apps\/Draggy\/app.json",
+            "40ef342da6e2ffb3"
+        ]
+    ]
+}
