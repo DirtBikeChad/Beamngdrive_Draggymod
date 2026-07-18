@@ -51,7 +51,7 @@ angular.module('beamng.apps')
     template: [
       '<div class="bngApp drag-timer-app">',
       '  <div class="dt-header">',
-      '    <button class="dt-mode" ng-click="toggleDist()" title="Toggle ⅛+¼ / ¼+½ mile">{{ distMode===\'half\' ? (metric ? \'402–804\' : \'¼–½\') : (metric ? \'201–402\' : \'⅛–¼\') }}</button>',
+      '    <button class="dt-mode" ng-click="toggleDist()" title="Toggle ⅛+¼ / ¼+½ mile">{{ distMode===\'half\' ? (metric ? \'400–1000\' : \'¼–½\') : (metric ? \'200–400\' : \'⅛–¼\') }}</button>',
       '    <button class="dt-mode dt-units" ng-class="{metric: metric}" ng-click="toggleUnits()" title="Switch between mph/ft and km\/h/m">{{ metric ? \'KM\/H\' : \'MPH\' }}</button>',
       '    <div class="dt-brand"><span class="dt-dot" ng-class="{run: status===\'RUN\'}"></span>DRAGGY</div>',
       '    <button class="dt-reset" ng-click="reset()">RESET</button>',
@@ -71,15 +71,15 @@ angular.module('beamng.apps')
       '      <span class="val">{{ run.t60130 ? (run.t60130 | number:2) + \'s\' : \'—\' }}</span>',
       '    </div>',
       '    <div class="dt-row" ng-if="distMode===\'eighth\'" ng-class="{\'dt-done\': run.teighth}">',
-      '      <span class="lbl">{{ metric ? \'201 M\' : \'⅛ MILE\' }}</span>',
+      '      <span class="lbl">{{ metric ? \'200 M\' : \'⅛ MILE\' }}</span>',
       '      <span class="val">{{ run.teighth ? (run.teighth | number:2) + \'s\' : \'—\' }}</span>',
       '    </div>',
       '    <div class="dt-row" ng-class="{\'dt-done\': run.tquarter, \'dt-quarter\': distMode===\'eighth\'}">',
-      '      <span class="lbl">{{ metric ? \'402 M\' : \'¼ MILE\' }}</span>',
+      '      <span class="lbl">{{ metric ? \'400 M\' : \'¼ MILE\' }}</span>',
       '      <span class="val">{{ run.tquarter ? (run.tquarter | number:2) + \'s\' : \'—\' }}</span>',
       '    </div>',
       '    <div class="dt-row dt-quarter" ng-if="distMode===\'half\'" ng-class="{\'dt-done\': run.thalf}">',
-      '      <span class="lbl">{{ metric ? \'804 M\' : \'½ MILE\' }}</span>',
+      '      <span class="lbl">{{ metric ? \'1 KM\' : \'½ MILE\' }}</span>',
       '      <span class="val">{{ run.thalf ? (run.thalf | number:2) + \'s\' : \'—\' }}</span>',
       '    </div>',
       '    <div class="dt-row dt-trap" ng-if="run.trapMps">',
@@ -87,7 +87,7 @@ angular.module('beamng.apps')
       '      <span class="val">{{ speedDisp(run.trapMps) }} {{ metric ? \'km/h\' : \'mph\' }}</span>',
       '    </div>',
       '  </div>',
-      '  <div class="dt-best" ng-if="best[distMode]">BEST {{ distMode===\'half\' ? (metric ? \'804M\' : \'½\') : (metric ? \'402M\' : \'¼\') }}&nbsp;&nbsp;{{ best[distMode].time | number:2 }}s @ {{ speedDisp(best[distMode].trapMps) }} {{ metric ? \'km/h\' : \'mph\' }}</div>',
+      '  <div class="dt-best" ng-if="best[bestKey()]">BEST {{ distMode===\'half\' ? (metric ? \'1KM\' : \'½\') : (metric ? \'400M\' : \'¼\') }}&nbsp;&nbsp;{{ best[bestKey()].time | number:2 }}s @ {{ speedDisp(best[bestKey()].trapMps) }} {{ metric ? \'km/h\' : \'mph\' }}</div>',
       '</div>'
     ].join('\n'),
     replace: true,
@@ -101,6 +101,12 @@ angular.module('beamng.apps')
       var EIGHTH_MILE_M  = 201.168;
       var QUARTER_MILE_M = 402.336;
       var HALF_MILE_M    = 804.672;
+      // Metric mode times the real metric benchmarks, not mile conversions:
+      // 0-400 m ("zero-yon", carwow 400m) with a 200 m split, and the
+      // classic European standing kilometer (0-1000 m) as the long distance.
+      var M_SPLIT   = 200;
+      var M_SHORT   = 400;
+      var M_LONG    = 1000;
       var ROLLOUT_M = 0.3048; // 1 ft rollout, like real Dragy
 
       // Display modes (toggled by the top-left button).
@@ -122,8 +128,15 @@ angular.module('beamng.apps')
       // Speed-interval thresholds (m/s) depend on the unit mode.
       function lowThreshMps()  { return scope.metric ? 100 / MPS_TO_KMH : 60  / MPS_TO_MPH; }
       function highThreshMps() { return scope.metric ? 200 / MPS_TO_KMH : 130 / MPS_TO_MPH; }
-      // Finish line (m) depends on the distance mode.
-      function finishDistM()   { return scope.distMode === 'half' ? HALF_MILE_M : QUARTER_MILE_M; }
+      // Split/finish distances depend on the unit system, which each run
+      // locks in at launch so flipping units mid-run can't corrupt a time.
+      function splitDistM(r)  { return r.metric ? M_SPLIT : EIGHTH_MILE_M; }
+      function shortDistM(r)  { return r.metric ? M_SHORT : QUARTER_MILE_M; }
+      function longDistM(r)   { return r.metric ? M_LONG  : HALF_MILE_M; }
+      function finishDistM(r) { return scope.distMode === 'half' ? longDistM(r) : shortDistM(r); }
+      // Best-run memory is kept separately per unit system: a 400 m time is
+      // not comparable with a 402.3 m quarter-mile time.
+      scope.bestKey = function() { return scope.distMode + (scope.metric ? 'M' : ''); };
 
       // Convert a speed in m/s to the current display unit string.
       scope.speedDisp = function(mps) {
@@ -133,6 +146,7 @@ angular.module('beamng.apps')
 
       function freshRun() {
         return {
+          metric: scope.metric, // unit system locked in for this run
           armed: false,   // staged: stopped with throttle, waiting to clear rollout
           armDist: 0,     // ground distance at the moment we armed
           active: false,
@@ -153,7 +167,7 @@ angular.module('beamng.apps')
       }
 
       scope.run = freshRun();
-      scope.best = { eighth: null, half: null }; // best finish time per dist mode
+      scope.best = { eighth: null, half: null, eighthM: null, halfM: null }; // per dist mode and unit system
       scope.status = 'READY';
       scope.liveSpeed = '0.0';
       scope.liveDist = '0';
@@ -264,6 +278,7 @@ angular.module('beamng.apps')
         if (!run.armed && !run.active && !run.done && speed < 0.5 && throttle > 0.5) {
           run.armed   = true;
           run.armDist = odo;
+          run.metric  = scope.metric; // lock the unit system for this run
         }
 
         // Disarm if we let off the throttle before launching
@@ -308,31 +323,31 @@ angular.module('beamng.apps')
           run.hitHigh = true;
         }
 
-        // 1/8 mile
-        if (!run.hitEighth && dist >= EIGHTH_MILE_M) {
+        // first split (1/8 mile, or 200 m in metric)
+        if (!run.hitEighth && dist >= splitDistM(run)) {
           run.teighth   = elapsed;
           run.hitEighth = true;
         }
 
-        // 1/4 mile
-        if (!run.hitQuarter && dist >= QUARTER_MILE_M) {
+        // short distance (1/4 mile, or 400 m in metric)
+        if (!run.hitQuarter && dist >= shortDistM(run)) {
           run.tquarter   = elapsed;
           run.hitQuarter = true;
         }
 
-        // 1/2 mile
-        if (!run.hitHalf && dist >= HALF_MILE_M) {
+        // long distance (1/2 mile, or 1000 m in metric)
+        if (!run.hitHalf && dist >= longDistM(run)) {
           run.thalf   = elapsed;
           run.hitHalf = true;
         }
 
-        // Finish line — depends on the current distance mode (¼ or ½ mile)
-        if (!run.done && dist >= finishDistM()) {
+        // Finish line — depends on the distance mode and the run's unit system
+        if (!run.done && dist >= finishDistM(run)) {
           run.trapMps = speed;
           run.done    = true;
           run.active  = false; // run complete
 
-          var key = scope.distMode; // 'eighth' (¼ finish) or 'half' (½ finish)
+          var key = scope.distMode + (run.metric ? 'M' : '');
           if (!scope.best[key] || elapsed < scope.best[key].time) {
             scope.best[key] = { time: elapsed, trapMps: speed };
           }
