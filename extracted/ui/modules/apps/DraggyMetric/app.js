@@ -1,5 +1,5 @@
 angular.module('beamng.apps')
-.directive('draggy', ['$timeout', function($timeout) {
+.directive('draggyMetric', ['$timeout', function($timeout) {
   // NOTE: StreamsManager is a BeamNG global, NOT an Angular-injectable service.
   // Injecting it via DI throws "Unknown provider: StreamsManagerProvider".
 
@@ -7,7 +7,7 @@ angular.module('beamng.apps')
   // template, because with replace:true AngularJS requires the template to
   // have a single root element and a <style> child breaks that (renders blank).
   function injectStyles() {
-    if (document.getElementById('draggy-styles')) return;
+    if (document.getElementById('draggy-metric-styles')) return;
     var css = [
       '@keyframes dt-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }',
       '.drag-timer-app { box-sizing: border-box; width: 100%; height: 100%; overflow: hidden; display: flex; flex-direction: column; background: #0a0b0d; color: #fff; font-family: "Roboto Mono", monospace; border-radius: 12px; border: 1px solid #1d1f24; }',
@@ -40,7 +40,7 @@ angular.module('beamng.apps')
       '.drag-timer-app .dt-best { margin-top: auto; padding: 9px 13px; background: rgba(0,230,118,0.08); border-top: 1px solid #1a1c20; font-size: 11px; color: #00e676; text-align: center; letter-spacing: 1px; }'
     ].join('\n');
     var style = document.createElement('style');
-    style.id = 'draggy-styles';
+    style.id = 'draggy-metric-styles';
     style.type = 'text/css';
     style.appendChild(document.createTextNode(css));
     document.head.appendChild(style);
@@ -53,7 +53,7 @@ angular.module('beamng.apps')
       '  <div class="dt-header">',
       '    <button class="dt-mode" ng-click="toggleDist()" title="Toggle ⅛+¼ / ¼+½ mile">{{ distMode===\'half\' ? (metric ? \'400–1000\' : \'¼–½\') : (metric ? \'200–400\' : \'⅛–¼\') }}</button>',
       '    <button class="dt-mode dt-units" ng-class="{metric: metric}" ng-click="toggleUnits()" title="Switch between mph/ft and km\/h/m">{{ metric ? \'KM\/H\' : \'MPH\' }}</button>',
-      '    <div class="dt-brand"><span class="dt-dot" ng-class="{run: status===\'RUN\'}"></span>DRAGGY</div>',
+      '    <div class="dt-brand"><span class="dt-dot" ng-class="{run: status===\'RUN\'}"></span>DRAGGY&nbsp;<span style=\'color:#00e676\'>M</span></div>',
       '    <button class="dt-reset" ng-click="reset()">RESET</button>',
       '  </div>',
       '  <div class="dt-hero">',
