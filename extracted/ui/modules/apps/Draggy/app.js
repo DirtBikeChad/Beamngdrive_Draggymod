@@ -66,9 +66,9 @@ angular.module('beamng.apps')
       '      <span class="lbl">{{ metric ? \'0–100\' : \'0–60\' }}</span>',
       '      <span class="val">{{ run.t060 ? (run.t060 | number:2) + \'s\' : \'—\' }}</span>',
       '    </div>',
-      '    <div class="dt-row" ng-class="{\'dt-done\': run.t60130}">',
+      '    <div class="dt-row" ng-class="{\'dt-done\': roll.time}">',
       '      <span class="lbl">{{ metric ? \'100–200\' : \'60–130\' }}</span>',
-      '      <span class="val">{{ run.t60130 ? (run.t60130 | number:2) + \'s\' : \'—\' }}</span>',
+      '      <span class="val">{{ roll.time ? (roll.time | number:2) + \'s\' : (roll.counting ? (roll.live | number:1) + \'s…\' : \'—\') }}</span>',
       '    </div>',
       '    <div class="dt-row" ng-if="distMode===\'eighth\'" ng-class="{\'dt-done\': run.teighth}">',
       '      <span class="lbl">{{ metric ? \'200 M\' : \'⅛ MILE\' }}</span>',
@@ -125,9 +125,6 @@ angular.module('beamng.apps')
       scope.distMode = loadPref('draggyDistMode', 'eighth') === 'half' ? 'half' : 'eighth';
       scope.metric = loadPref('draggyMetric', '0') === '1';
 
-      // Speed-interval thresholds (m/s) depend on the unit mode.
-      function lowThreshMps()  { return scope.metric ? 100 / MPS_TO_KMH : 60  / MPS_TO_MPH; }
-      function highThreshMps() { return scope.metric ? 200 / MPS_TO_KMH : 130 / MPS_TO_MPH; }
       // Split/finish distances depend on the unit system, which each run
       // locks in at launch so flipping units mid-run can't corrupt a time.
       function splitDistM(r)  { return r.metric ? M_SPLIT : EIGHTH_MILE_M; }
@@ -155,18 +152,27 @@ angular.module('beamng.apps')
           startTime: null,
           startDist: 0,
           odometer: 0,
-          // results (t060/t60130 are the low/high speed-interval times)
-          t060: null, t60130: null,
-          t060130start: null,
+          // results (the high-speed interval lives in scope.roll, not here)
+          t060: null,
           teighth: null, tquarter: null, thalf: null,
           trapMps: null,  // speed at the finish line, stored in m/s
           // milestones hit
-          hitLow: false, hitHigh: false,
+          hitLow: false,
           hitEighth: false, hitQuarter: false, hitHalf: false,
         };
       }
 
       scope.run = freshRun();
+      // Rolling high-speed interval (60-130 mph / 100-200 km/h), fully
+      // independent of launch runs: arms whenever speed is below the low
+      // threshold, counts (live) once it crosses it, locks the time at the
+      // high threshold, and clears + re-arms as soon as speed drops back
+      // below the low threshold. Works from rolling starts.
+      scope.roll = { time: null, live: null, counting: false, below: true, metric: false, startT: 0 };
+      function rollReset() {
+        scope.roll.time = null; scope.roll.live = null;
+        scope.roll.counting = false; scope.roll.below = true;
+      }
       scope.best = { eighth: null, half: null, eighthM: null, halfM: null }; // per dist mode and unit system
       scope.status = 'READY';
       scope.liveSpeed = '0.0';
@@ -210,7 +216,7 @@ angular.module('beamng.apps')
       function runHasData(r) {
         return r.active || r.armed || r.done || r.hitLow ||
                r.hitEighth || r.hitQuarter || r.hitHalf ||
-               r.t060 != null || r.t60130 != null ||
+               r.t060 != null ||
                r.teighth != null || r.tquarter != null || r.thalf != null;
       }
 
@@ -230,6 +236,16 @@ angular.module('beamng.apps')
         scope.liveDist = '0';
         idleStart = null;
       };
+
+      // Vehicle respawn/recover (Ctrl+R / insert) and vehicle switches fully
+      // reset the timers; a new vehicle also clears the session bests.
+      scope.$on('VehicleReset', function() {
+        scope.reset(); rollReset();
+      });
+      scope.$on('VehicleFocusChanged', function() {
+        scope.reset(); rollReset();
+        scope.best = { eighth: null, half: null, eighthM: null, halfM: null };
+      });
 
       scope.$on('streamsUpdate', function(event, streams) {
         var e = streams.electrics;
@@ -260,6 +276,32 @@ angular.module('beamng.apps')
         // Live speed always updates, like a real Dragy
         scope.liveSpeed = scope.speedDisp(speed);
 
+        // --- Rolling high-speed interval (independent of launch runs) ---
+        var roll = scope.roll;
+        var rollMetric = roll.counting ? roll.metric : scope.metric;
+        var rollLow  = rollMetric ? 100 / MPS_TO_KMH : 60  / MPS_TO_MPH;
+        var rollHigh = rollMetric ? 200 / MPS_TO_KMH : 130 / MPS_TO_MPH;
+        if (speed < rollLow) {
+          // below the low threshold: clear any previous result and re-arm
+          if (roll.counting || roll.time !== null) rollReset();
+          roll.below = true;
+        } else {
+          if (roll.below && !roll.counting && roll.time === null) {
+            // crossed the low threshold from below: the clock starts
+            roll.counting = true;
+            roll.metric   = scope.metric; // lock the unit for this attempt
+            roll.startT   = now;
+          }
+          roll.below = false;
+          if (roll.counting) {
+            roll.live = now - roll.startT;
+            if (speed >= rollHigh) {
+              roll.time     = roll.live;
+              roll.counting = false; // locked until speed drops below the low threshold
+            }
+          }
+        }
+
         // Auto-reset: off the throttle for AUTO_RESET_S sim-seconds clears the
         // run, so you can just coast to a stop and re-stage without RESET.
         if (throttle < THROTTLE_OFF) {
@@ -273,17 +315,20 @@ angular.module('beamng.apps')
           idleStart = null;
         }
 
-        // Arm: vehicle near-still, throttle applied — stage the launch.
-        // We record where we are but don't start the clock yet.
-        if (!run.armed && !run.active && !run.done && speed < 0.5 && throttle > 0.5) {
+        // Coming to a stop ends the previous run: results clear and the
+        // timer re-stages itself, so every pull from 0 counts a fresh 0-60
+        // with no manual RESET needed.
+        if (speed < 0.5 && (run.active || run.done)) {
+          scope.reset();
+          run = scope.run;
+        }
+
+        // Arm: vehicle near-still — stage automatically, like a real Dragy.
+        // No throttle requirement: any launch from standstill is timed.
+        if (!run.armed && !run.active && !run.done && speed < 0.5) {
           run.armed   = true;
           run.armDist = odo;
           run.metric  = scope.metric; // lock the unit system for this run
-        }
-
-        // Disarm if we let off the throttle before launching
-        if (run.armed && !run.active && throttle <= 0.5 && speed < 0.5) {
-          run.armed = false;
         }
 
         // Launch: clock + distance start only after clearing the 1 ft rollout
@@ -293,7 +338,6 @@ angular.module('beamng.apps')
           run.startTime = now;
           run.startDist = odo;       // distances measured from the rollout point
           run.startSpeed = speed;
-          run.t060130start = now;    // 60-130 clock starts at launch (reset at 60mph hit)
         }
 
         // Status badge
@@ -310,17 +354,11 @@ angular.module('beamng.apps')
         var elapsed = now - run.startTime;
         var dist    = odo - run.startDist;
 
-        // Low speed interval (0–60 mph / 0–100 km/h)
-        if (!run.hitLow && speed >= lowThreshMps()) {
+        // Low speed interval (0-60 mph / 0-100 km/h), unit locked per run
+        var runLowMps = run.metric ? 100 / MPS_TO_KMH : 60 / MPS_TO_MPH;
+        if (!run.hitLow && speed >= runLowMps) {
           run.t060  = elapsed;
           run.hitLow = true;
-          run.t060130start = now; // high-interval clock starts at the low threshold
-        }
-
-        // High speed interval (60–130 mph / 100–200 km/h), starts at the low threshold
-        if (run.hitLow && !run.hitHigh && speed >= highThreshMps()) {
-          run.t60130  = now - run.t060130start;
-          run.hitHigh = true;
         }
 
         // first split (1/8 mile, or 200 m in metric)
