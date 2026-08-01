@@ -1,0 +1,20 @@
+{
+  "domElement": "<draggy-metric></draggy-metric>",
+  "name": "Draggy Metric",
+  "directive": "draggyMetric",
+  "description": "Draggy-style drag meter: 0-60/60-130 mph + 1/8-1/4-1/2 mile, or metric 0-100/100-200 km/h + 200m/400m/1km (zero-yon & standing km), with a one-click unit switch",
+  "author": "Draco",
+  "version": "1.4",
+  "types": [
+    "ui.apps.categories.timing"
+  ],
+  "category": "Dashboard",
+  "isAuxiliary": false,
+  "interactive": "yes",
+  "css": {
+    "top": "10px",
+    "left": "10px",
+    "width": "280px",
+    "height": "330px"
+  }
+}
